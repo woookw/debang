@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>得邦智能化工厂管理系统</title>
+  <!-- 引入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 引入 Font Awesome -->
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <!-- 引入 Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  <!-- 引入 Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
+  <!-- 配置 Tailwind CSS -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#165DFF',
+            secondary: '#36CFC9',
+            success: '#52C41A',
+            warning: '#FAAD14',
+            danger: '#FF4D4F',
+            info: '#1890FF',
+            light: '#F5F5F5',
+            dark: '#1F2329',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        },
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .content-auto {
+        content-visibility: auto;
+      }
+      .text-shadow {
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .card-shadow {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      }
+      .transition-all-300 {
+        transition: all 0.3s ease;
+      }
+    }
+  </style>
+  <style>
+    body {
+      background-color: #f5f7fa;
+    }
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .slide-in {
+      animation: slideIn 0.4s ease-out;
+    }
+    @keyframes slideIn {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .rotate-in {
+      animation: rotateIn 0.3s ease-out;
+    }
+    @keyframes rotateIn {
+      from { transform: rotate(-10deg); opacity: 0; }
+      to { transform: rotate(0); opacity: 1; }
+    }
+    .pulse-effect {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+    .nav-item-active {
+      position: relative;
+    }
+    .nav-item-active::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background-color: #165DFF;
+      border-radius: 1.5px;
+    }
+  </style>
+</head>
+<body class="min-h-screen font-sans text-dark">
+  <!-- 登录页面 - 初始显示 -->
+  <div id="login-page" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div class="w-full max-w-md bg-white rounded-xl shadow-xl overflow-hidden slide-in">
+      <div class="p-8">
+        <div class="text-center mb-8">
+          <h2 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-dark text-shadow">
+            得邦智能化工厂管理系统
+          </h2>
+          <p class="text-gray-500 mt-2"><h3> 练习一坤年的全民制作人：王旭</p></h3>
+        </div>
+        
+        <div class="space-y-4">
+          <button id="btn-production" class="w-full py-3 px-4 bg-primary text-white rounded-lg font-medium transition-all-300 hover:bg-primary/90 hover:shadow-lg flex items-center justify-center">
+            <i class="fa fa-industry mr-3 text-xl"></i>
+            <span>生产人员端</span>
+          </button>
+          
+          <button id="btn-maintenance" class="w-full py-3 px-4 bg-secondary text-white rounded-lg font-medium transition-all-300 hover:bg-secondary/90 hover:shadow-lg flex items-center justify-center">
+            <i class="fa fa-wrench mr-3 text-xl"></i>
+            <span>维保人员端</span>
+          </button>
+          
+          <button id="btn-manager" class="w-full py-3 px-4 bg-info text-white rounded-lg font-medium transition-all-300 hover:bg-info/90 hover:shadow-lg flex items-center justify-center">
+            <i class="fa fa-line-chart mr-3 text-xl"></i>
+            <span>管理人员端</span>
+          </button>
+        </div>
+      </div>
+      
+      <div class="bg-gray-50 p-4 text-center text-gray-500 text-sm">
+        <p>© 2025.9.15 得邦智能化工厂管理系统</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 生产人员端页面 - 初始隐藏 -->
+  <div id="production-page" class="hidden min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+      <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <button id="back-to-main-production" class="text-gray-600 hover:text-primary transition-colors">
+            <i class="fa fa-home text-xl"></i>
+          </button>
+          <i class="fa fa-industry text-primary text-2xl"></i>
+          <h1 class="text-xl font-bold text-dark">生产人员工作台</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <span class="text-gray-600">欢迎，生产人员</span>
+          <button id="logout-production" class="text-danger hover:text-danger/80 transition-colors">
+            <i class="fa fa-sign-out mr-1"></i> 退出
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主要内容区域 -->
+    <main class="flex-1 container mx-auto px-4 py-6">
+      <!-- 快捷操作卡片 -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-xl p-6 card-shadow hover:shadow-lg transition-all-300 cursor-pointer">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-gray-500 mb-2">生产问题反馈</p>
+              <h3 class="text-2xl font-bold text-primary">反馈问题</h3>
+            </div>
+            <div class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center text-primary text-xl">
+              <i class="fa fa-bug"></i>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-xl p-6 card-shadow hover:shadow-lg transition-all-300 cursor-pointer">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-gray-500 mb-2">设备状态查看</p>
+              <h3 class="text-2xl font-bold text-secondary">设备监控</h3>
+            </div>
+            <div class="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center text-secondary text-xl">
+              <i class="fa fa-microchip"></i>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-xl p-6 card-shadow hover:shadow-lg transition-all-300 cursor-pointer">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-gray-500 mb-2">我的反馈记录</p>
+              <h3 class="text-2xl font-bold text-success">查看历史</h3>
+            </div>
+            <div class="w-12 h-12 bg-success/10 rounded-full flex items-center justify-center text-success text-xl">
+              <i class="fa fa-history"></i>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-xl p-6 card-shadow hover:shadow-lg transition-all-300 cursor-pointer">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-gray-500 mb-2">生产效率</p>
+              <h3 class="text-2xl font-bold text-warning">今日指标</h3>
+            </div>
+            <div class="w-12 h-12 bg-warning/10 rounded-full flex items-center justify-center text-warning text-xl">
+              <i class="fa fa-tachometer"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 问题反馈表单 -->
+      <div class="bg-white rounded-xl p-6 card-shadow mb-8">
+        <h2 class="text-xl font-bold mb-4">生产/设备问题反馈</h2>
+        <form id="production-feedback-form" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-gray-700 mb-1" for="feedback-type">问题类型</label>
+              <select id="feedback-type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors">
+                <option value="production">生产问题</option>
+                <option value="equipment">设备问题</option>
+                <option value="material">材料问题</option>
+                <option value="other">其他问题</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-gray-700 mb-1" for="feedback-location">发生位置</label>
+              <input type="text" id="feedback-location" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="请输入车间/生产线/工位">
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-gray-700 mb-1" for="feedback-description">问题描述</label>
+            <textarea id="feedback-description" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors" placeholder="请详细描述问题情况"></textarea>
+          </div>
+          
+          <div>
+            <label class="block text-gray-700 mb-1">问题图片（可选）</label>
+            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-primary transition-colors">
+              <i class="fa fa-cloud-upload text-4xl text-gray-400 mb-2"></i>
+              <p class="text-gray-500 mb-2">点击上传或拖拽文件到此处</p>
+              <p class="text-xs text-gray-400">支持 JPG, PNG, GIF 格式，最大 5MB</p>
+              <input type="file" class="hidden" accept="image/*" multiple>
+            </div>
+          </div>
+          
+          <div class="flex justify-end">
+            <button type="submit" class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
+              <i class="fa fa-paper-plane mr-2"></i>提交反馈
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 最近反馈记录 -->
+      <div class="bg-white rounded-xl p-6 card-shadow">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold">最近反馈记录</h2>
+          <button class="text-primary hover:text-primary/80 transition-colors">
+            查看全部 <i class="fa fa-angle-right ml-1"></i>
+          </button>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead>
+              <tr class="bg-gray-50">
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">问题类型</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">发生位置</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">反馈时间</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">处理状态</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">操作</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <!-- 表格数据将通过 JavaScript 动态填充 -->
+              <tr>
+                <td class="px-4 py-3 text-sm">设备问题</td>
+                <td class="px-4 py-3 text-sm">装配车间-生产线2-工位3</td>
+                <td class="px-4 py-3 text-sm">2023-06-15 14:30</td>
+                <td class="px-4 py-3 text-sm"><span class="px-2 py-1 text-xs bg-warning/10 text-warning rounded-full">处理中</span></td>
+                <td class="px-4 py-3 text-sm"><button class="text-primary hover:text-primary/80">查看详情</button></td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-sm">生产问题</td>
+                <td class="px-4 py-3 text-sm">包装车间-生产线1-工位2</td>
+                <td class="px-4 py-3 text-sm">2023-06-14 09:15</td>
+                <td class="px-4 py-3 text-sm"><span class="px-2 py-1 text-xs bg-success/10 text-success rounded-full">已解决</span></td>
+                <td class="px-4 py-3 text-sm"><button class="text-primary hover:text-primary/80">查看详情</button></td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-sm">材料问题</td>
+                <td class="px-4 py-3 text-sm">注塑车间-生产线3-工位5</td>
+                <td class="px-4 py-3 text-sm">2023-06-12 16:45</td>
+                <td class="px-4 py-3 text-sm"><span class="px-2 py-1 text-xs bg-success/10 text-success rounded-full">已解决</span></td>
+                <td class="px-4 py-3 text-sm"><button class="text-primary hover:text-primary/80">查看详情</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 维保人员端页面 - 初始隐藏 -->
+  <div id="maintenance-page" class="hidden min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+      <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <button id="back-to-main-maintenance" class="text-gray-600 hover:text-secondary transition-colors">
+            <i class="fa fa-home text-xl"></i>
+          </button>
+          <i class="fa fa-wrench text-secondary text-2xl"></i>
+          <h1 class="text-xl font-bold text-dark">维保人员工作台</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <span class="text-gray-600">欢迎，维保人员</span>
+          <button id="logout-maintenance" class="text-danger hover:text-danger/80 transition-colors">
+            <i class="fa fa-sign-out mr-1"></i> 退出
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主要内容区域 -->
+    <main class="flex-1 container mx-auto px-4 py-6">
+      <!-- 统计卡片 -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-semibold text-gray-700">待处理任务</h3>
+            <span class="w-8 h-8 bg-danger/10 rounded-full flex items-center justify-center text-danger">
+              <i class="fa fa-exclamation-circle"></i>
+            </span>
+          </div>
+          <p class="text-3xl font-bold text-dark">5</p>
+          <p class="text-sm text-gray-500 mt-1">较昨日 <span class="text-danger">+2</span></p>
+        </div>
+        
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-semibold text-gray-700">今日已完成</h3>
+            <span class="w-8 h-8 bg-success/10 rounded-full flex items-center justify-center text-success">
+              <i class="fa fa-check-circle"></i>
+            </span>
+          </div>
+          <p class="text-3xl font-bold text-dark">12</p>
+          <p class="text-sm text-gray-500 mt-1">较昨日 <span class="text-success">+3</span></p>
+        </div>
+        
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-semibold text-gray-700">本月维保计划</h3>
+            <span class="w-8 h-8 bg-info/10 rounded-full flex items-center justify-center text-info">
+              <i class="fa fa-calendar"></i>
+            </span>
+          </div>
+          <p class="text-3xl font-bold text-dark">28/45</p>
+          <p class="text-sm text-gray-500 mt-1">完成率 62%</p>
+        </div>
+      </div>
+
+      <!-- 待处理任务列表 -->
+      <div class="bg-white rounded-xl p-6 card-shadow mb-8">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold">待处理任务</h2>
+          <button class="text-secondary hover:text-secondary/80 transition-colors">
+            查看全部 <i class="fa fa-angle-right ml-1"></i>
+          </button>
+        </div>
+        
+        <div class="space-y-4">
+          <!-- 任务卡片 -->
+          <div class="border border-gray-200 rounded-lg p-4 hover:border-secondary transition-colors cursor-pointer">
+            <div class="flex justify-between items-start mb-2">
+              <h3 class="font-semibold">设备故障处理 - 装配车间</h3>
+              <span class="px-2 py-1 text-xs bg-danger/10 text-danger rounded-full">紧急</span>
+            </div>
+            <p class="text-sm text-gray-600 mb-3">装配线2的机械臂出现异常，需要立即检查和维修。</p>
+            <div class="flex justify-between items-center">
+              <div class="flex items-center text-sm text-gray-500">
+                <i class="fa fa-map-marker mr-1"></i>
+                <span>装配车间-生产线2-工位3</span>
+              </div>
+              <div class="text-sm text-gray-500">
+                <i class="fa fa-clock-o mr-1"></i>
+                <span>15分钟前</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="border border-gray-200 rounded-lg p-4 hover:border-secondary transition-colors cursor-pointer">
+            <div class="flex justify-between items-start mb-2">
+              <h3 class="font-semibold">定期维护 - 注塑车间</h3>
+              <span class="px-2 py-1 text-xs bg-warning/10 text-warning rounded-full">待处理</span>
+            </div>
+            <p class="text-sm text-gray-600 mb-3">注塑机3需要进行月度维护和保养，检查液压系统和温控系统。</p>
+            <div class="flex justify-between items-center">
+              <div class="flex items-center text-sm text-gray-500">
+                <i class="fa fa-map-marker mr-1"></i>
+                <span>注塑车间-设备3</span>
+              </div>
+              <div class="text-sm text-gray-500">
+                <i class="fa fa-clock-o mr-1"></i>
+                <span>2小时前</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="border border-gray-200 rounded-lg p-4 hover:border-secondary transition-colors cursor-pointer">
+            <div class="flex justify-between items-start mb-2">
+              <h3 class="font-semibold">电气系统检查 - 包装车间</h3>
+              <span class="px-2 py-1 text-xs bg-warning/10 text-warning rounded-full">待处理</span>
+            </div>
+            <p class="text-sm text-gray-600 mb-3">包装线1的电气控制系统出现间歇性故障，需要全面检查。</p>
+            <div class="flex justify-between items-center">
+              <div class="flex items-center text-sm text-gray-500">
+                <i class="fa fa-map-marker mr-1"></i>
+                <span>包装车间-生产线1</span>
+              </div>
+              <div class="text-sm text-gray-500">
+                <i class="fa fa-clock-o mr-1"></i>
+                <span>5小时前</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 维修记录表单 -->
+      <div class="bg-white rounded-xl p-6 card-shadow">
+        <h2 class="text-xl font-bold mb-4">维修保养记录</h2>
+        <form id="maintenance-record-form" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-gray-700 mb-1" for="record-type">记录类型</label>
+              <select id="record-type" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors">
+                <option value="repair">故障维修</option>
+                <option value="maintenance">定期保养</option>
+                <option value="inspection">设备检查</option>
+                <option value="upgrade">设备升级</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-gray-700 mb-1" for="equipment-name">设备名称</label>
+              <input type="text" id="equipment-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors" placeholder="请输入设备名称">
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-gray-700 mb-1" for="equipment-location">设备位置</label>
+              <input type="text" id="equipment-location" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors" placeholder="请输入设备位置">
+            </div>
+            <div>
+              <label class="block text-gray-700 mb-1" for="maintenance-time">维护时间</label>
+              <input type="datetime-local" id="maintenance-time" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors">
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-gray-700 mb-1" for="failure-reason">故障原因（如适用）</label>
+            <textarea id="failure-reason" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors" placeholder="请描述故障原因"></textarea>
+          </div>
+          
+          <div>
+            <label class="block text-gray-700 mb-1" for="maintenance-content">维护内容</label>
+            <textarea id="maintenance-content" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors" placeholder="请描述维护过程和措施"></textarea>
+          </div>
+          
+          <div>
+            <label class="block text-gray-700 mb-1" for="maintenance-result">处理结果</label>
+            <select id="maintenance-result" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary focus:border-secondary transition-colors">
+              <option value="success">已解决</option>
+              <option value="partial">部分解决</option>
+              <option value="pending">待观察</option>
+              <option value="failed">未解决</option>
+            </select>
+          </div>
+          
+          <div class="flex justify-end">
+            <button type="submit" class="px-6 py-2 bg-secondary text-white rounded-lg hover:bg-secondary/90 transition-colors">
+              <i class="fa fa-save mr-2"></i>保存记录
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
+  </div>
+
+  <!-- 管理人员端页面 - 初始隐藏 -->
+  <div id="manager-page" class="hidden min-h-screen flex flex-col">
+    <!-- 顶部导航栏 -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+      <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <button id="back-to-main-manager" class="text-gray-600 hover:text-info transition-colors">
+            <i class="fa fa-home text-xl"></i>
+          </button>
+          <i class="fa fa-line-chart text-info text-2xl"></i>
+          <h1 class="text-xl font-bold text-dark">管理人员工作台</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <span class="text-gray-600">欢迎，管理人员</span>
+          <button id="logout-manager" class="text-danger hover:text-danger/80 transition-colors">
+            <i class="fa fa-sign-out mr-1"></i> 退出
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主要内容区域 -->
+    <main class="flex-1 container mx-auto px-4 py-6">
+      <!-- 关键指标卡片 -->
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-gray-500 mb-2">未处理问题</p>
+              <h3 class="text-2xl font-bold text-danger">8</h3>
+            </div>
+            <div class="w-12 h-12 bg-danger/10 rounded-full flex items-center justify-center text-danger text-xl">
+              <i class="fa fa-exclamation-circle"></i>
+            </div>
+          </div>
+          <div class="mt-4">
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-danger h-2 rounded-full" style="width: 40%"></div>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">较昨日 <span class="text-danger">+2</span></p>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-gray-500 mb-2">今日维保任务</p>
+              <h3 class="text-2xl font-bold text-secondary">17</h3>
+            </div>
+            <div class="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center text-secondary text-xl">
+              <i class="fa fa-wrench"></i>
+            </div>
+          </div>
+          <div class="mt-4">
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-secondary h-2 rounded-full" style="width: 65%"></div>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">较昨日 <span class="text-success">-3</span></p>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-gray-500 mb-2">设备完好率</p>
+              <h3 class="text-2xl font-bold text-success">94%</h3>
+            </div>
+            <div class="w-12 h-12 bg-success/10 rounded-full flex items-center justify-center text-success text-xl">
+              <i class="fa fa-check-circle"></i>
+            </div>
+          </div>
+          <div class="mt-4">
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-success h-2 rounded-full" style="width: 94%"></div>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">较上周 <span class="text-success">+1%</span></p>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="text-gray-500 mb-2">平均处理时间</p>
+              <h3 class="text-2xl font-bold text-warning">42分钟</h3>
+            </div>
+            <div class="w-12 h-12 bg-warning/10 rounded-full flex items-center justify-center text-warning text-xl">
+              <i class="fa fa-clock-o"></i>
+            </div>
+          </div>
+          <div class="mt-4">
+            <div class="w-full bg-gray-200 rounded-full h-2">
+              <div class="bg-warning h-2 rounded-full" style="width: 55%"></div>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">较上周 <span class="text-success">-5分钟</span></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 图表区域 -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <h2 class="text-xl font-bold mb-4">问题类型分布</h2>
+          <div class="h-80">
+            <canvas id="problem-type-chart"></canvas>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-xl p-6 card-shadow">
+          <h2 class="text-xl font-bold mb-4">月度维保趋势</h2>
+          <div class="h-80">
+            <canvas id="maintenance-trend-chart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 最近问题列表 -->
+      <div class="bg-white rounded-xl p-6 card-shadow">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold">最近问题反馈</h2>
+          <div class="flex space-x-2">
+            <button class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+              全部问题
+            </button>
+            <button class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+              未处理
+            </button>
+            <button class="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+              已解决
+            </button>
+          </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="min-w-full">
+            <thead>
+              <tr class="bg-gray-50">
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">问题类型</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">发生位置</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">反馈人</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">反馈时间</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">处理状态</th>
+                <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">操作</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <!-- 表格数据将通过 JavaScript 动态填充 -->
+              <tr>
+                <td class="px-4 py-3 text-sm">设备问题</td>
+                <td class="px-4 py-3 text-sm">装配车间-生产线2-工位3</td>
+                <td class="px-4 py-3 text-sm">张三</td>
+                <td class="px-4 py-3 text-sm">2023-06-15 14:30</td>
+                <td class="px-4 py-3 text-sm"><span class="px-2 py-1 text-xs bg-warning/10 text-warning rounded-full">处理中</span></td>
+                <td class="px-4 py-3 text-sm">
+                  <button class="text-primary hover:text-primary/80 mr-2">查看</button>
+                  <button class="text-secondary hover:text-secondary/80">分配</button>
+                </td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-sm">生产问题</td>
+                <td class="px-4 py-3 text-sm">包装车间-生产线1-工位2</td>
+                <td class="px-4 py-3 text-sm">李四</td>
+                <td class="px-4 py-3 text-sm">2023-06-14 09:15</td>
+                <td class="px-4 py-3 text-sm"><span class="px-2 py-1 text-xs bg-success/10 text-success rounded-full">已解决</span></td>
+                <td class="px-4 py-3 text-sm">
+                  <button class="text-primary hover:text-primary/80 mr-2">查看</button>
+                  <button class="text-gray-400 cursor-not-allowed">分配</button>
+                </td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-sm">材料问题</td>
+                <td class="px-4 py-3 text-sm">注塑车间-生产线3-工位5</td>
+                <td class="px-4 py-3 text-sm">王五</td>
+                <td class="px-4 py-3 text-sm">2023-06-12 16:45</td>
+                <td class="px-4 py-3 text-sm"><span class="px-2 py-1 text-xs bg-success/10 text-success rounded-full">已解决</span></td>
+                <td class="px-4 py-3 text-sm">
+                  <button class="text-primary hover:text-primary/80 mr-2">查看</button>
+                  <button class="text-gray-400 cursor-not-allowed">分配</button>
+                </td>
+              </tr>
+              <tr>
+                <td class="px-4 py-3 text-sm">设备问题</td>
+                <td class="px-4 py-3 text-sm">冲压车间-生产线1-工位4</td>
+                <td class="px-4 py-3 text-sm">赵六</td>
+                <td class="px-4 py-3 text-sm">2023-06-11 11:20</td>
+                <td class="px-4 py-3 text-sm"><span class="px-2 py-1 text-xs bg-danger/10 text-danger rounded-full">未处理</span></td>
+                <td class="px-4 py-3 text-sm">
+                  <button class="text-primary hover:text-primary/80 mr-2">查看</button>
+                  <button class="text-secondary hover:text-secondary/80">分配</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="mt-4 flex justify-center">
+          <nav class="flex items-center space-x-1">
+            <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">上一页</button>
+            <button class="px-3 py-1 border border-primary bg-primary text-white rounded-lg text-sm">1</button>
+            <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">2</button>
+            <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">3</button>
+            <button class="px-3 py-1 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors">下一页</button>
+          </nav>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- JavaScript 逻辑 -->
+  <script src="app.js"></script>
+</body>
+</html>
