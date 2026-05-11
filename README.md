@@ -1,7 +1,7 @@
 # 得邦智能化工厂管理系统
 
 ## 项目概述
-这是一个面向得邦智能化工厂的网页端小程序，提供了生产人员、维保人员和管理人员三种角色的工作台功能，帮助工厂实现生产问题反馈、设备维修保养记录和管理数据分析的数字化管理。
+这是一个面向得邦智能化工厂的网页端管理系统，提供生产人员、维保人员和管理人员三种角色的工作台功能，实现生产问题反馈、设备维修保养记录和管理数据分析的数字化管理。
 
 ## 功能模块
 
@@ -27,51 +27,94 @@
 ## 技术栈
 - HTML5 + CSS3
 - JavaScript (原生)
-- Tailwind CSS v3 (用于样式)
-- Font Awesome (用于图标)
-- Chart.js (用于数据可视化)
+- Tailwind CSS v3 (样式框架)
+- Font Awesome (图标库)
+- Chart.js (数据可视化)
+- Supabase (后端服务)
 
-## 配置与运行
+## 快速开始
 
-### 基本配置
-该项目是一个纯前端应用，无需后端服务器即可运行。所有的数据目前是模拟数据，在实际部署时需要连接到后端API获取真实数据。
+### 1. 配置 Supabase
 
-### 运行方式
-1. 确保您的计算机已安装现代浏览器（推荐 Chrome、Firefox、Edge 等）
-2. 直接双击 `index.html` 文件，系统会在默认浏览器中打开应用
-3. 或者，您可以使用任何静态文件服务器来托管该项目
+#### 创建 Supabase 项目
+1. 访问 [Supabase](https://supabase.com/) 并创建新项目
+2. 进入 **SQL Editor**
+3. 复制 `supabase-database.sql` 的内容并执行
 
-### 使用说明
-1. 打开应用后，首先会看到角色选择登录页面
-2. 根据您的身份选择对应的角色入口：
-   - 生产人员：点击"生产人员端"按钮
-   - 维保人员：点击"维保人员端"按钮  
-   - 管理人员：点击"管理人员端"按钮
-3. 在各个工作台页面，您可以进行相应的操作，如提交反馈、查看记录等
-4. 点击页面右上角的"退出"按钮可以返回角色选择页面
+#### 获取 API 密钥
+1. 进入 **Settings** → **API**
+2. 复制 `anon public` 密钥
+
+#### 配置本地密钥
+1. 复制 `config.example.js` 为 `config.js`
+2. 在 `config.js` 中填入您的 Supabase 密钥：
+```javascript
+const SUPABASE_CONFIG = {
+  url: 'https://your-project.supabase.co',
+  key: 'your-anon-key-here'
+};
+```
+3. **重要**：`config.js` 已添加到 `.gitignore`，不会被上传到 GitHub
+
+### 2. 运行项目
+
+#### 开发模式
+```bash
+# 使用 Python 启动简单服务器
+python -m http.server 8000
+
+# 或使用 npm
+npx serve .
+```
+
+#### 生产部署
+项目可部署到以下平台：
+- GitHub Pages
+- Vercel
+- Netlify
+- 任何静态文件托管服务
 
 ## 项目结构
 ```
-├── index.html  # 主页面文件，包含所有UI结构
-├── app.js      # JavaScript 逻辑文件，处理页面交互
-└── README.md   # 项目说明文档
+├── index.html          # 主页面文件，包含所有UI结构
+├── app.js              # JavaScript 逻辑文件
+├── config.js           # 本地配置文件（包含密钥，不上传GitHub）⚠️
+├── config.example.js   # 配置示例文件（可上传GitHub）
+├── supabase-database.sql  # Supabase 数据库脚本（含 RLS）
+├── database.sql        # 通用 PostgreSQL 数据库脚本
+├── DATABASE_README.md  # 数据库配置说明
+├── README.md           # 项目说明文档
+└── .gitignore          # Git 忽略文件配置
 ```
 
-## 开发说明
+## 数据库设计
 
-### 自定义样式
-您可以在 `index.html` 文件的 `<style type="text/tailwindcss">` 块中添加自定义工具类和样式。
+### 表结构
+| 表名 | 说明 |
+|------|------|
+| `users` | 用户信息表 |
+| `equipment` | 设备信息表 |
+| `feedbacks` | 问题反馈表 |
+| `maintenance_records` | 维护记录表 |
+| `comments` | 评论跟进表 |
 
-### 添加新功能
-1. 在 `index.html` 中添加新的HTML结构
-2. 在 `app.js` 中编写相应的JavaScript逻辑
-3. 如果需要，在 `initManagerCharts()` 函数中添加新的图表配置
+### 角色权限
+- **production** (生产人员): 可查看设备、提交反馈、查看自己的反馈记录
+- **maintenance** (维保人员): 可查看设备、处理反馈、创建维护记录
+- **manager** (管理人员): 完整权限，可查看和管理所有数据
 
-### 连接后端API
-要连接到真实的后端API，您需要：
-1. 在 `app.js` 中找到表单提交事件监听器
-2. 将模拟的数据提交代码替换为实际的API请求
-3. 添加从API获取数据并更新页面的函数
+## 安全说明
+
+### RLS 策略
+项目已配置完整的 Row Level Security：
+- 用户只能查看自己的反馈记录
+- 维保人员和管理人员可修改设备信息
+- 反馈提交者、被分配者和管理人员可更新反馈状态
+
+### 重要提醒
+1. 切勿将 API 密钥提交到版本控制系统
+2. 在生产环境中启用 HTTPS
+3. 定期审查数据库访问日志
 
 ## 浏览器兼容性
 - Chrome：最新版本
@@ -79,7 +122,8 @@
 - Safari：最新版本
 - Edge：最新版本
 
-## 注意事项
-1. 本系统目前使用的是模拟数据，实际部署时需要接入真实的数据源
-2. 为了获得最佳体验，请使用现代浏览器并保持网络连接
-3. 在移动设备上，系统会自动调整布局以适应小屏幕
+## 贡献指南
+欢迎提交 Issue 和 Pull Request！
+
+## 许可证
+MIT License

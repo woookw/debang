@@ -86,7 +86,12 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- 为各个表添加更新时间触发器
+-- 为各个表添加更新时间触发器（先删除已存在的触发器）
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
+DROP TRIGGER IF EXISTS update_equipment_updated_at ON equipment;
+DROP TRIGGER IF EXISTS update_feedbacks_updated_at ON feedbacks;
+DROP TRIGGER IF EXISTS update_maintenance_records_updated_at ON maintenance_records;
+
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
@@ -195,7 +200,10 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('feedback-images', 'feedback-images', true)
 ON CONFLICT (id) DO NOTHING;
 
--- 设置存储桶 RLS 策略
+-- 设置存储桶 RLS 策略（先删除已存在的策略）
+DROP POLICY IF EXISTS "Authenticated users can upload feedback images" ON storage.objects;
+DROP POLICY IF EXISTS "Public can view feedback images" ON storage.objects;
+
 CREATE POLICY "Authenticated users can upload feedback images" ON storage.objects
     FOR INSERT WITH CHECK (
         bucket_id = 'feedback-images' AND

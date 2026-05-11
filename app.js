@@ -1,9 +1,46 @@
 // Supabase 配置
-const supabaseUrl = 'https://optvzautqwuyckorzmhs.supabase.co';
-const supabaseKey = 'optvzautqwuyckorzmhs';
+// 优先从 config.js 加载配置，如果不存在则使用环境变量或提示
+let supabaseUrl, supabaseKey;
+
+if (typeof SUPABASE_CONFIG !== 'undefined') {
+  // 从本地配置文件加载
+  supabaseUrl = SUPABASE_CONFIG.url;
+  supabaseKey = SUPABASE_CONFIG.key;
+} else {
+  // 生产环境：从环境变量或提示
+  console.warn('⚠️ 未找到 config.js，请确保已配置 Supabase 密钥');
+  supabaseUrl = 'https://optvzautqwuyckorzmhs.supabase.co';
+  supabaseKey = null; // 需要手动配置
+}
 
 // 初始化 Supabase 客户端
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+let supabase;
+if (supabaseKey) {
+  supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+} else {
+  console.error('❌ Supabase 密钥未配置，请在 config.js 中设置');
+}
+
+// 测试 Supabase 连接
+async function testSupabaseConnection() {
+  if (!supabase) {
+    console.error('Supabase 客户端未初始化');
+    return;
+  }
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      console.warn('Supabase 连接警告:', error.message);
+    } else {
+      console.log('✅ Supabase 客户端初始化成功');
+    }
+  } catch (err) {
+    console.error('Supabase 初始化失败:', err);
+  }
+}
+
+// 页面加载时测试连接
+document.addEventListener('DOMContentLoaded', testSupabaseConnection);
 
 // 获取页面元素
 const loginPage = document.getElementById('login-page');
@@ -76,7 +113,7 @@ backToMainManager.addEventListener('click', () => {
 });
 
 // 表单提交处理
-productionFeedbackForm.addEventListener('submit', (e) => {
+productionFeedbackForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   
   // 获取表单数据
@@ -90,12 +127,39 @@ productionFeedbackForm.addEventListener('submit', (e) => {
     return;
   }
   
-  // 这里是模拟提交，实际应用中应该发送到服务器
-  alert('反馈已提交成功！');
-  productionFeedbackForm.reset();
+  // 提交到 Supabase
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('feedbacks')
+        .insert([
+          {
+            type: feedbackType,
+            location: feedbackLocation,
+            description: feedbackDescription,
+            status: 'pending'
+          }
+        ]);
+      
+      if (error) {
+        console.error('提交失败:', error);
+        alert('提交失败: ' + error.message);
+      } else {
+        alert('反馈已提交成功！');
+        productionFeedbackForm.reset();
+      }
+    } catch (err) {
+      console.error('提交出错:', err);
+      alert('提交出错，请检查网络连接');
+    }
+  } else {
+    // 模拟提交
+    alert('反馈已提交成功！(模拟)');
+    productionFeedbackForm.reset();
+  }
 });
 
-maintenanceRecordForm.addEventListener('submit', (e) => {
+maintenanceRecordForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   
   // 获取表单数据
@@ -113,9 +177,39 @@ maintenanceRecordForm.addEventListener('submit', (e) => {
     return;
   }
   
-  // 这里是模拟提交，实际应用中应该发送到服务器
-  alert('维护记录已保存成功！');
-  maintenanceRecordForm.reset();
+  // 提交到 Supabase
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('maintenance_records')
+        .insert([
+          {
+            type: recordType,
+            equipment_name: equipmentName,
+            equipment_location: equipmentLocation,
+            maintenance_time: maintenanceTime,
+            failure_reason: failureReason,
+            maintenance_content: maintenanceContent,
+            result: maintenanceResult
+          }
+        ]);
+      
+      if (error) {
+        console.error('保存失败:', error);
+        alert('保存失败: ' + error.message);
+      } else {
+        alert('维护记录已保存成功！');
+        maintenanceRecordForm.reset();
+      }
+    } catch (err) {
+      console.error('保存出错:', err);
+      alert('保存出错，请检查网络连接');
+    }
+  } else {
+    // 模拟提交
+    alert('维护记录已保存成功！(模拟)');
+    maintenanceRecordForm.reset();
+  }
 });
 
 // 初始化管理人员页面的图表
@@ -140,17 +234,6 @@ function initManagerCharts() {
       repairData: [5, 8, 12, 9, 15, 10],
       maintenanceData: [10, 12, 8, 15, 18, 14]
     };
-    
-    // 更新关键指标卡片
-    const totalProblems = document.getElementById('total-problems');
-    const pendingProblems = document.getElementById('pending-problems');
-    const completedMaintenance = document.getElementById('completed-maintenance');
-    const avgProcessingTime = document.getElementById('avg-processing-time');
-    
-    if (totalProblems) totalProblems.textContent = '30';
-    if (pendingProblems) pendingProblems.textContent = '12';
-    if (completedMaintenance) completedMaintenance.textContent = '48';
-    if (avgProcessingTime) avgProcessingTime.textContent = '2.5小时';
     
     // 问题类型分布图表
     const problemTypeCtx = document.getElementById('problem-type-chart');
@@ -281,9 +364,7 @@ function initManagerCharts() {
 // 响应式处理
 function handleResponsive() {
   const viewportWidth = window.innerWidth;
-  
   // 可以根据不同的视口宽度调整页面元素样式
-  // 这里可以添加响应式逻辑
 }
 
 // 页面加载完成后初始化
@@ -324,12 +405,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // 监听窗口大小变化
 window.addEventListener('resize', handleResponsive);
-
-// 模拟数据生成函数（如果需要）
-function generateMockData() {
-  // 这里可以添加生成模拟数据的逻辑
-  // 例如生成维护记录、问题列表等
-}
 
 // 导出一些函数以便在浏览器控制台调试（如果需要）
 window.app = {
